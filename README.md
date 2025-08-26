@@ -6,6 +6,11 @@ Utiliza banco de dados em memória **H2** para testes e desenvolvimento rápido.
 
 ---
 
+## DIagrama de Classes
+<img width="700" height="500" alt="imagem_readme" src="https://github.com/user-attachments/assets/df2366bc-fb04-41ac-a3ca-091c65739209" />
+
+---
+
 ##  Tecnologias Utilizadas
 
 - **Java 17+**

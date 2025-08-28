@@ -5,6 +5,7 @@ import com.financeiro.backend.domains.Conta;
 import com.financeiro.backend.domains.Lancamento;
 import com.financeiro.backend.domains.dtos.LancamentoDTO;
 import com.financeiro.backend.domains.enums.Situacao;
+import com.financeiro.backend.domains.enums.TipoConta;
 import com.financeiro.backend.domains.enums.TipoLancamento;
 import com.financeiro.backend.repositories.CentroCustoRepository;
 import com.financeiro.backend.repositories.ContaRepository;
@@ -95,19 +96,30 @@ public class LancamentoService {
         Lancamento lancamento = findById(id);
         lancamentoRepository.delete(lancamento);
     }
+
     public Lancamento pagarLancamento(Long id) {
         Lancamento lancamento = findById(id);
         if(lancamento.getSituacao() == Situacao.ABERTO) {
             lancamento.setSituacao(Situacao.BAIXADO);
             lancamento.setDataBaixa(LocalDate.now());
-
-
             Conta conta = lancamento.getConta();
+
             if(lancamento.getTipoLancamento() == TipoLancamento.DEBITO) {
-                conta.setSaldo(conta.getSaldo().subtract(lancamento.getValor()));
+                if (conta.getTipoConta() == TipoConta.CARTAO_DE_CREDITO) {
+                    if (conta.getLimite() == null) {
+                        throw new IllegalArgumentException("Cartão de crédito não possui limite definido!");
+                    }
+                    if (lancamento.getValor().compareTo(conta.getLimite()) > 0) {
+                        throw new IllegalArgumentException("Valor do lançamento excede o limite disponível do cartão!");
+                    }
+                    conta.setLimite(conta.getLimite().subtract(lancamento.getValor()));
+                } else {
+                    conta.setSaldo(conta.getSaldo().subtract(lancamento.getValor()));
+                }
             } else if(lancamento.getTipoLancamento() == TipoLancamento.CREDITO) {
                 conta.setSaldo(conta.getSaldo().add(lancamento.getValor()));
             }
+
             contaRepository.save(conta);
             return lancamentoRepository.save(lancamento);
         }

@@ -7,6 +7,7 @@ import com.financeiro.backend.repositories.UsuarioRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -18,6 +19,9 @@ public class UsuarioService {
 
     @Autowired
     private UsuarioRepository usuarioRepo;
+
+    @Autowired
+    private PasswordEncoder encoder;
 
     public List<UsuarioDTO> findAll() {
         return usuarioRepo.findAll().stream()
@@ -32,6 +36,7 @@ public class UsuarioService {
 
     public Usuario create(UsuarioDTO dto) {
         dto.setId(null);
+        dto.setSenha(encoder.encode(dto.getSenha()));
         validaEmail(dto.getEmail());
 
         Usuario usuario = new Usuario(

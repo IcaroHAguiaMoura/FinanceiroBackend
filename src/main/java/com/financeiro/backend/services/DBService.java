@@ -7,6 +7,7 @@ import com.financeiro.backend.domains.enums.TipoLancamento;
 import com.financeiro.backend.domains.enums.TipoPessoa;
 import com.financeiro.backend.repositories.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -33,10 +34,13 @@ public class DBService {
     @Autowired
     private LancamentoRepository lancamentoRepository;
 
+    @Autowired
+    private PasswordEncoder encoder;
+
     public void initDB() {
 
 
-        Usuario usuario1 = new Usuario(null, "Teste Usuario", "teste@gmail.com", "123", TipoPessoa.CLIENTE);
+        Usuario usuario1 = new Usuario(null, "Teste Usuario", "teste@gmail.com", encoder.encode("123"), TipoPessoa.CLIENTE);
         usuarioRepository.save(usuario1);
 
 

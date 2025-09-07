@@ -14,6 +14,7 @@ import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -99,25 +100,69 @@ public class LancamentoService {
 
     public Lancamento pagarLancamento(Long id) {
         Lancamento lancamento = findById(id);
-        if(lancamento.getSituacao() == Situacao.ABERTO) {
-            lancamento.setSituacao(Situacao.BAIXADO);
-            lancamento.setDataBaixa(LocalDate.now());
-            Conta conta = lancamento.getConta();
 
-            if(lancamento.getTipoLancamento() == TipoLancamento.DEBITO) {
-                if (conta.getTipoConta() == TipoConta.CARTAO_DE_CREDITO) {
-                    if (conta.getLimite() == null) {
-                        throw new IllegalArgumentException("Cartão de crédito não possui limite definido!");
+        if (lancamento.getSituacao() == Situacao.ABERTO) {
+            Conta conta = lancamento.getConta();
+            BigDecimal saldo = conta.getSaldo() == null ? BigDecimal.ZERO : conta.getSaldo();
+            BigDecimal limite = conta.getLimite() == null ? BigDecimal.ZERO : conta.getLimite();
+            BigDecimal valor = lancamento.getValor();
+
+            boolean isParcelado = false;
+            int parcelaAtual = 1;
+            int totalParcelas = 1;
+
+            if (lancamento.getParcela() != null && lancamento.getParcela().contains("/")) {
+                String[] partes = lancamento.getParcela().split("/");
+                try {
+                    parcelaAtual = Integer.parseInt(partes[0].trim());
+                    totalParcelas = Integer.parseInt(partes[1].trim());
+                    if (totalParcelas > 1) {
+                        isParcelado = true;
                     }
-                    if (lancamento.getValor().compareTo(conta.getLimite()) > 0) {
-                        throw new IllegalArgumentException("Valor do lançamento excede o limite disponível do cartão!");
+                } catch (NumberFormatException ignored) {}
+            }
+
+            if (lancamento.getTipoLancamento() == TipoLancamento.DEBITO) {
+                if (isParcelado) {
+                    // desconta direto do limite
+                    if (valor.compareTo(limite) > 0) {
+                        throw new IllegalArgumentException("Limite insuficiente para realizar o débito parcelado!");
                     }
-                    conta.setLimite(conta.getLimite().subtract(lancamento.getValor()));
+                    conta.setLimite(limite.subtract(valor));
+
+                    // avança parcela
+                    if (parcelaAtual < totalParcelas) {
+                        parcelaAtual++;
+                        lancamento.setParcela(parcelaAtual + "/" + totalParcelas);
+                        lancamento.setSituacao(Situacao.ABERTO); // ainda em aberto
+                    } else {
+                        lancamento.setSituacao(Situacao.BAIXADO); // última parcela
+                        lancamento.setDataBaixa(LocalDate.now());
+                    }
+
                 } else {
-                    conta.setSaldo(conta.getSaldo().subtract(lancamento.getValor()));
+                    // caso normal: saldo e limite
+                    BigDecimal totalDisponivel = saldo.add(limite);
+                    if (valor.compareTo(totalDisponivel) > 0) {
+                        throw new IllegalArgumentException("Saldo e limite insuficientes para realizar o débito!");
+                    }
+
+                    if (valor.compareTo(saldo) <= 0) {
+                        conta.setSaldo(saldo.subtract(valor));
+                    } else {
+                        BigDecimal restante = valor.subtract(saldo);
+                        conta.setSaldo(BigDecimal.ZERO);
+                        conta.setLimite(limite.subtract(restante));
+                    }
+
+                    lancamento.setSituacao(Situacao.BAIXADO);
+                    lancamento.setDataBaixa(LocalDate.now());
                 }
-            } else if(lancamento.getTipoLancamento() == TipoLancamento.CREDITO) {
+
+            } else if (lancamento.getTipoLancamento() == TipoLancamento.CREDITO) {
                 conta.setSaldo(conta.getSaldo().add(lancamento.getValor()));
+                lancamento.setSituacao(Situacao.BAIXADO);
+                lancamento.setDataBaixa(LocalDate.now());
             }
 
             contaRepository.save(conta);

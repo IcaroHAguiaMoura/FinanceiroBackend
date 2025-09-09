@@ -36,8 +36,12 @@ public class UsuarioService {
 
     public Usuario create(UsuarioDTO dto) {
         dto.setId(null);
+
+        // valida email antes de criar
+        validaEmail(null, dto.getEmail()); // null porque ainda não existe ID
+
+        // criptografa a senha
         dto.setSenha(encoder.encode(dto.getSenha()));
-        validaEmail(dto.getEmail());
 
         Usuario usuario = new Usuario(
                 dto.getId(),
@@ -50,11 +54,12 @@ public class UsuarioService {
         return usuarioRepo.save(usuario);
     }
 
+
     public Usuario update(Long id, UsuarioDTO dto) {
         Usuario oldUsuario = findById(id);
         dto.setId(id);
 
-        validaEmail(dto.getEmail());
+        validaEmail(id, dto.getEmail()); // passa o ID do usuário atual
 
         oldUsuario.setRazaoSocial(dto.getRazaoSocial());
         oldUsuario.setEmail(dto.getEmail());
@@ -64,15 +69,17 @@ public class UsuarioService {
         return usuarioRepo.save(oldUsuario);
     }
 
+
     public void delete(Long id) {
         Usuario usuario = findById(id);
         usuarioRepo.delete(usuario);
     }
 
-    private void validaEmail(String email) {
+    private void validaEmail(Long id, String email) {
         Optional<Usuario> obj = usuarioRepo.findByEmail(email);
-        if (obj.isPresent()) {
+        if (obj.isPresent() && !obj.get().getId().equals(id)) {
             throw new DataIntegrityViolationException("Email já cadastrado!");
         }
     }
+
 }

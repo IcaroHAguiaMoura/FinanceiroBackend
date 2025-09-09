@@ -3,6 +3,7 @@ package com.financeiro.backend.services;
 import com.financeiro.backend.domains.Pessoa;
 import com.financeiro.backend.domains.dtos.PessoaDTO;
 import com.financeiro.backend.repositories.PessoaRepository;
+import com.financeiro.backend.services.exceptions.ObjectNotFoundException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -28,7 +29,7 @@ public class PessoaService {
 
     public Pessoa findById(Long id) {
         Optional<Pessoa> obj = pessoaRepo.findById(id);
-        return obj.orElseThrow(() -> new EntityNotFoundException("Pessoa não encontrada! ID: " + id));
+        return obj.orElseThrow(() -> new ObjectNotFoundException("Pessoa não encontrada! ID: " + id));
     }
 
 

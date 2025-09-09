@@ -1,10 +1,13 @@
 package com.financeiro.backend.services;
 
+import com.financeiro.backend.domains.Banco;
 import com.financeiro.backend.domains.Conta;
 import com.financeiro.backend.domains.Usuario;
 import com.financeiro.backend.domains.dtos.ContaDTO;
+import com.financeiro.backend.repositories.BancoRepository;
 import com.financeiro.backend.repositories.ContaRepository;
 import com.financeiro.backend.repositories.UsuarioRepository;
+import com.financeiro.backend.services.exceptions.ObjectNotFoundException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -23,6 +26,9 @@ public class ContaService {
     @Autowired
     private UsuarioRepository usuarioRepo;
 
+    @Autowired
+    private BancoRepository bancoRepo;
+
     public List<ContaDTO> findAll() {
         return contaRepo.findAll().stream()
                 .map(ContaDTO::new)
@@ -31,14 +37,17 @@ public class ContaService {
 
     public Conta findById(Long id) {
         Optional<Conta> obj = contaRepo.findById(id);
-        return obj.orElseThrow(() -> new EntityNotFoundException("Conta não encontrada! Id: " + id));
+        return obj.orElseThrow(() -> new ObjectNotFoundException("Conta não encontrada! Id: " + id));
     }
 
     public Conta create(ContaDTO dto) {
         dto.setId(null);
         validaConta(dto);
         Usuario usuario = usuarioRepo.findById(dto.getUsuarioId())
-                .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado! Id: " + dto.getUsuarioId()));
+                .orElseThrow(() -> new ObjectNotFoundException("Usuário não encontrado! Id: " + dto.getUsuarioId()));
+
+        Banco banco = bancoRepo.findById(dto.getBancoId())
+                .orElseThrow(() -> new ObjectNotFoundException("Banco não encontrado! Id: " + dto.getBancoId()));
 
         Conta conta = new Conta();
         conta.setDescricao(dto.getDescricao());
@@ -48,6 +57,7 @@ public class ContaService {
         conta.setNumero(dto.getNumero());
         conta.setLimite(dto.getLimite());
         conta.setUsuario(usuario);
+        conta.setBanco(banco);
 
         return contaRepo.save(conta);
     }
@@ -66,8 +76,14 @@ public class ContaService {
 
         if (dto.getUsuarioId() != null) {
             Usuario usuario = usuarioRepo.findById(dto.getUsuarioId())
-                    .orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado! Id: " + dto.getUsuarioId()));
+                    .orElseThrow(() -> new ObjectNotFoundException("Usuário não encontrado! Id: " + dto.getUsuarioId()));
             oldConta.setUsuario(usuario);
+        }
+
+        if (dto.getBancoId() != null) {
+            Banco banco = bancoRepo.findById(dto.getBancoId())
+                    .orElseThrow(() -> new ObjectNotFoundException("Banco não encontrado! Id: " + dto.getBancoId()));
+            oldConta.setBanco(banco);
         }
 
         return contaRepo.save(oldConta);

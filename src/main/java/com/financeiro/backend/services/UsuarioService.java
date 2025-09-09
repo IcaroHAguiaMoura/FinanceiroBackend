@@ -4,6 +4,7 @@ import com.financeiro.backend.domains.Usuario;
 import com.financeiro.backend.domains.dtos.UsuarioDTO;
 import com.financeiro.backend.domains.enums.TipoPessoa;
 import com.financeiro.backend.repositories.UsuarioRepository;
+import com.financeiro.backend.services.exceptions.ObjectNotFoundException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -31,7 +32,7 @@ public class UsuarioService {
 
     public Usuario findById(Long id) {
         Optional<Usuario> obj = usuarioRepo.findById(id);
-        return obj.orElseThrow(() -> new EntityNotFoundException("Usuário não encontrado! ID: " + id));
+        return obj.orElseThrow(() -> new ObjectNotFoundException("Usuário não encontrado! ID: " + id));
     }
 
     public Usuario create(UsuarioDTO dto) {

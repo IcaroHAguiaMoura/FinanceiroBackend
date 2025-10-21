@@ -32,6 +32,9 @@ public class LancamentoService {
     @Autowired
     private CentroCustoRepository centroCustoRepository;
 
+    @Autowired
+    private ExtratoService extratoService;
+
     public List<LancamentoDTO> findAll() {
         return lancamentoRepository.findAll()
                 .stream()
@@ -165,6 +168,8 @@ public class LancamentoService {
                 lancamento.setSituacao(Situacao.BAIXADO);
                 lancamento.setDataBaixa(LocalDate.now());
             }
+
+            extratoService.registrarMovimentacaoAutomaticamente(lancamento);
 
             contaRepository.save(conta);
             return lancamentoRepository.save(lancamento);

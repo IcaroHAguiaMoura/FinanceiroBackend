@@ -52,9 +52,16 @@ public class BancoService {
     }
 
     public void delete(Long id) {
-        Banco obj = findById(id);
-        bancoRepo.delete(obj);
+        Banco banco = findById(id);
+        try {
+            bancoRepo.delete(banco);
+        } catch (DataIntegrityViolationException e) {
+            throw new DataIntegrityViolationException(
+                    "Não é possível excluir o banco porque existem contas associadas a ele."
+            );
+        }
     }
+
 
 
     private void validaBanco(Long id, String razaoSocial) {

@@ -73,8 +73,15 @@ public class UsuarioService {
 
     public void delete(Long id) {
         Usuario usuario = findById(id);
-        usuarioRepo.delete(usuario);
+        try {
+            usuarioRepo.delete(usuario);
+        } catch (DataIntegrityViolationException e) {
+            throw new DataIntegrityViolationException(
+                    "Não é possível excluir o usuario porque existem contas associadas a ele."
+            );
+        }
     }
+
 
     private void validaEmail(Long id, String email) {
         Optional<Usuario> obj = usuarioRepo.findByEmail(email);
